@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat App - Real-time Messaging</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <!-- Auth Page -->
+  <div id="auth-page" class="page active">
+    <div class="auth-container">
+      <div class="auth-box">
+        <h1>💬 Chat App</h1>
+        
+        <div class="auth-tabs">
+          <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+          <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+        </div>
+
+        <!-- Login Form (OTP Flow) -->
+        <div id="login-form" class="auth-form active">
+          <!-- Step 1: Enter Email -->
+          <div id="login-step-1" class="auth-step active">
+            <input type="email" id="login-email" placeholder="Enter your email" />
+            <button onclick="handleSendOTP('login')">Send OTP</button>
+            <p id="login-error" class="error"></p>
+          </div>
+
+          <!-- Step 2: Enter OTP -->
+          <div id="login-step-2" class="auth-step">
+            <p style="text-align: center; color: #666; margin-bottom: 15px;">
+              Enter the 6-digit code sent to <strong id="login-email-display"></strong>
+            </p>
+            <input type="text" id="login-otp" placeholder="000000" maxlength="6" pattern="[0-9]*" />
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 15px 0;">
+              <div style="text-align: center; flex: 1;">
+                <span id="login-timer" style="font-size: 18px; font-weight: bold; color: #667eea;">2:00</span>
+              </div>
+            </div>
+            <button onclick="handleVerifyOTP('login')">Verify Code</button>
+            <button class="secondary-btn" onclick="handleBackToEmail('login')">Back</button>
+            <p id="login-otp-error" class="error"></p>
+            <p style="text-align: center; margin-top: 15px;">
+              <button class="link-btn" onclick="handleSendOTP('login')">Didn't receive OTP? Resend</button>
+            </p>
+          </div>
+        </div>
+
+        <!-- Register Form (OTP Flow) -->
+        <div id="register-form" class="auth-form">
+          <!-- Step 1: Enter Details -->
+          <div id="register-step-1" class="auth-step active">
+            <input type="text" id="register-username" placeholder="Choose a username" />
+            <input type="email" id="register-email" placeholder="Enter your email" />
+            <button onclick="handleSendOTP('register')">Send OTP</button>
+            <p id="register-error" class="error"></p>
+          </div>
+
+          <!-- Step 2: Enter OTP -->
+          <div id="register-step-2" class="auth-step">
+            <p style="text-align: center; color: #666; margin-bottom: 15px;">
+              Enter the 6-digit code sent to <strong id="register-email-display"></strong>
+            </p>
+            <input type="text" id="register-otp" placeholder="000000" maxlength="6" pattern="[0-9]*" />
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 15px 0;">
+              <div style="text-align: center; flex: 1;">
+                <span id="register-timer" style="font-size: 18px; font-weight: bold; color: #667eea;">2:00</span>
+              </div>
+            </div>
+            <button onclick="handleVerifyOTP('register')">Verify Code</button>
+            <button class="secondary-btn" onclick="handleBackToEmail('register')">Back</button>
+            <p id="register-otp-error" class="error"></p>
+            <p style="text-align: center; margin-top: 15px;">
+              <button class="link-btn" onclick="handleSendOTP('register')">Didn't receive OTP? Resend</button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Page -->
+  <div id="chat-page" class="page">
+    <div class="chat-container">
+      <!-- Sidebar -->
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <h2>Chats</h2>
+          <div class="sidebar-actions">
+            <button class="icon-btn" id="show-all-users-btn" onclick="toggleAllUsersView()" title="Show All Users">+</button>
+            <button class="icon-btn" onclick="openCreateGroupModal()" title="New Group">👥</button>
+            <button class="icon-btn" onclick="openUserProfile()" title="Profile">👤</button>
+            <button class="icon-btn" id="admin-btn" onclick="openAdminDashboard()" title="Admin" style="display: none;">⚙️</button>
+            <button class="icon-btn" onclick="handleLogout()" title="Logout">🚪</button>
+          </div>
+        </div>
+
+        <div class="search-bar">
+          <input type="text" id="search-users" placeholder="Search users..." onkeyup="searchUsers()" />
+        </div>
+
+        <!-- Users List -->
+        <div id="users-list" class="users-list"></div>
+
+        <!-- Groups List -->
+        <div class="groups-section">
+          <h3>Groups</h3>
+          <div id="groups-list" class="groups-list"></div>
+        </div>
+      </div>
+
+      <!-- Chat Area -->
+      <div class="chat-area">
+        <div class="chat-header">
+          <div class="chat-header-left">
+            <button class="back-btn" id="mobile-back-btn" onclick="goBackToChatList()" style="display: none;">← Back</button>
+            <div class="chat-info">
+              <h2 id="chat-name"></h2>
+              <p id="chat-status"></p>
+            </div>
+          </div>
+          <button class="icon-btn" onclick="toggleGroupInfo()" id="group-info-btn" style="display: none;">ℹ️</button>
+        </div>
+
+        <div class="messages" id="messages">
+          <div id="empty-chat-message" class="empty-chat-message" style="display: flex;">
+            <div class="empty-chat-content">
+              <div class="empty-chat-icon">💬</div>
+              <h2>No Chat Selected</h2>
+              <p>Select a user or group from the left sidebar to start messaging</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="message-input-area">
+          <div class="message-input-actions">
+            <button class="action-btn" onclick="uploadFile('image')" title="Send Image">🖼️</button>
+            <button class="action-btn" onclick="uploadFile('voice')" title="Send Voice">🎤</button>
+            <input type="file" id="file-input" style="display: none" onchange="handleFileUpload()" accept=".jpg,.jpeg,.png,.gif,.mp3,.wav,.m4a" />
+          </div>
+
+          <!-- Voice Recording UI (WhatsApp style) -->
+          <div class="voice-recording-ui" style="display: none;">
+            <div class="voice-recording-info">
+              <div class="voice-waveform"></div>
+              <span id="recording-timer">0:00</span>
+            </div>
+          </div>
+
+          <!-- Voice Preview UI (WhatsApp style) -->
+          <div id="voice-preview-ui" style="display: none;" class="voice-preview-ui">
+            <div class="voice-preview-content">
+              <div class="voice-waveform"></div>
+              <button class="voice-action-btn cancel-btn" onclick="cancelVoiceMessage()" title="Cancel">✕</button>
+            </div>
+            <button class="voice-send-btn" onclick="sendVoiceMessage()">Send 📤</button>
+          </div>
+
+          <input type="text" id="message-input" placeholder="Type a message..." />
+          <button class="send-btn" onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+
+      <!-- Group Info Sidebar -->
+      <div class="group-info-sidebar" id="group-info-sidebar">
+        <div class="group-info-header">
+          <h3>Group Info</h3>
+          <button onclick="toggleGroupInfo()">✕</button>
+        </div>
+        <div id="group-members" class="group-members"></div>
+        <button onclick="addMemberToGroup()" class="btn-secondary">Add Member</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Dashboard Page -->
+  <div id="admin-page" class="page">
+    <div class="admin-container">
+      <!-- Admin Header -->
+      <div class="admin-header">
+        <h1>👨‍💼 Admin Dashboard</h1>
+        <div class="admin-header-actions">
+          <button class="icon-btn" onclick="backToChat()" title="Back to Chat">⬅️</button>
+          <button class="icon-btn" onclick="handleLogout()" title="Logout">🚪</button>
+        </div>
+      </div>
+
+      <!-- Statistics -->
+      <div class="admin-stats">
+        <div class="stat-card">
+          <h3>Total Users</h3>
+          <p id="stat-total-users">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Active Users</h3>
+          <p id="stat-active-users">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Total Groups</h3>
+          <p id="stat-total-groups">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Today's Messages</h3>
+          <p id="stat-today-messages">0</p>
+        </div>
+        <div class="stat-card">
+          <h3>Total Messages</h3>
+          <p id="stat-total-messages">0</p>
+        </div>
+      </div>
+
+      <!-- Admin Tabs -->
+      <div class="admin-tabs">
+        <button class="admin-tab active" onclick="switchAdminTab('users')">👥 All Users</button>
+        <button class="admin-tab" onclick="switchAdminTab('active')">🟢 Active Users</button>
+        <button class="admin-tab" onclick="switchAdminTab('activity')">📊 Activity</button>
+      </div>
+
+      <!-- Tab Contents -->
+      <div id="admin-users-tab" class="admin-tab-content active">
+        <div class="admin-search">
+          <input type="text" id="admin-search-users" placeholder="Search users..." onkeyup="searchAdminUsers()" />
+        </div>
+        <div id="admin-users-list" class="admin-users-list"></div>
+      </div>
+
+      <div id="admin-active-tab" class="admin-tab-content">
+        <div id="admin-active-users-list" class="admin-users-list"></div>
+      </div>
+
+      <div id="admin-activity-tab" class="admin-tab-content">
+        <div id="admin-activity-list" class="admin-activity-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin User Details Modal -->
+  <div id="admin-user-modal" class="modal">
+    <div class="modal-content admin-modal">
+      <span class="close" onclick="closeAdminUserModal()">&times;</span>
+      <h2>User Details</h2>
+      <div class="admin-user-details">
+        <img id="admin-user-avatar" src="" alt="Avatar" class="admin-user-avatar" />
+        <p><strong>Username:</strong> <span id="admin-user-username"></span></p>
+        <p><strong>Email:</strong> <span id="admin-user-email"></span></p>
+        <p><strong>Status:</strong> <span id="admin-user-status"></span></p>
+        <p><strong>Joined:</strong> <span id="admin-user-joined"></span></p>
+        <p><strong>Messages Sent:</strong> <span id="admin-user-messages"></span></p>
+        <p><strong>Groups:</strong> <span id="admin-user-groups"></span></p>
+        
+        <h3>Recent Activity</h3>
+        <div id="admin-user-activity" class="admin-user-activity"></div>
+        
+        <div class="admin-user-actions">
+          <button class="btn-danger" onclick="deleteAdminUser()">Delete User</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <!-- Create Group Modal -->
+  <div id="create-group-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeCreateGroupModal()">&times;</span>
+      <h2>Create New Group</h2>
+      <input type="text" id="group-name" placeholder="Group Name" />
+      <textarea id="group-description" placeholder="Group Description"></textarea>
+      <button onclick="createGroup()">Create Group</button>
+    </div>
+  </div>
+
+  <!-- User Profile Modal -->
+  <div id="profile-modal" class="modal">
+    <div class="modal-content profile-modal">
+      <span class="close" onclick="closeProfileModal()">&times;</span>
+      <h2>My Profile</h2>
+      <div class="profile-content">
+        <img id="profile-avatar" src="" alt="Avatar" class="profile-avatar" />
+        <button onclick="document.getElementById('profile-file-input').click()" class="btn-secondary">Change Avatar</button>
+        <input type="file" id="profile-file-input" accept="image/*" style="display: none;" onchange="previewAvatar()" />
+        <p id="profile-username"></p>
+        <p id="profile-email"></p>
+        <textarea id="profile-bio" placeholder="Bio"></textarea>
+        <button onclick="updateProfile()">Save Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Member Modal -->
+  <div id="add-member-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeAddMemberModal()">&times;</span>
+      <h2>Add Member to Group</h2>
+      <select id="member-select"></select>
+      <button onclick="confirmAddMember()">Add Member</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+  <script src="/admin.js"></script>
+</body>
+</html>
